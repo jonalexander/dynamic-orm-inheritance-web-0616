@@ -10,20 +10,24 @@ class InteractiveRecord
   def self.column_names
     DB[:conn].results_as_hash = true
 
-    sql = "pragma table_info('#{table_name}')"
+    sql = "pragma table_info('#{table_name}')"      #grabs hash of data from passed table
 
-    table_info = DB[:conn].execute(sql)
+    table_info = DB[:conn].execute(sql)   # hash
     column_names = []
     table_info.each do |row|
       column_names << row["name"]
     end
-    column_names.compact
+    column_names.compact    
   end
 
+  ######
+
+  # creates attribtue accessor info w/ column names
   self.column_names.each do |col_name|
     attr_accessor col_name.to_sym
   end
 
+  #iterates over passed hash, sends property key and sets value to response received from send
   def initialize(options={})
     options.each do |property, value|
       self.send("#{property}=", value)
@@ -42,16 +46,21 @@ class InteractiveRecord
 
   def values_for_insert
     values = []
+
+    #iterate thru each column name and send it to class, grab response and stick into array
+    #join the array for insertion into SQL code
     self.class.column_names.each do |col_name|
       values << "'#{send(col_name)}'" unless send(col_name).nil?
     end
     values.join(", ")
   end
 
+  #remove id column and join others into string for insertion into SQL code
   def col_names_for_insert
     self.class.column_names.delete_if {|col| col == "id"}.join(", ")
   end
 
+  #boiler plate find_by_name method
   def self.find_by_name(name)
     sql = "SELECT * FROM #{self.table_name} WHERE name = '#{name}'"
     DB[:conn].execute(sql)
